@@ -5,10 +5,11 @@ import { SkeletonGrid } from '../components/SkeletonGrid';
 import { ErrorState } from '../components/ErrorState';
 import { FilterBar } from '../components/FilterBar';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 
 export function Home() {
   const [trending, setTrending] = useState([]);
-  const [trendingState, setTrendingState] = useState('loading'); // loading | ready | error
+  const [trendingState, setTrendingState] = useState('loading');
 
   const [genres, setGenres] = useState([]);
   const [selectedGenre, setSelectedGenre] = useState('');
@@ -19,6 +20,11 @@ export function Home() {
   const [totalPages, setTotalPages] = useState(1);
   const [gridState, setGridState] = useState('loading');
 
+  const [recommended, setRecommended] = useState([]);
+  const [recommendedGenreName, setRecommendedGenreName] = useState(null);
+
+  const { items: recentlyViewed } = useRecentlyViewed();
+
   useEffect(() => {
     api.trending().then((res) => {
       setTrending(res.results || []);
@@ -27,6 +33,22 @@ export function Home() {
 
     api.genres().then((res) => setGenres(res.results || [])).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (genres.length === 0) return;
+    api.wishlist.topGenre()
+      .then((res) => {
+        if (!res.genreId) return;
+        const genre = genres.find((g) => g.id === res.genreId);
+        if (!genre) return;
+        setRecommendedGenreName(genre.name);
+        return api.discover({ genre: res.genreId, sort: 'popularity.desc', page: 1 });
+      })
+      .then((discoverRes) => {
+        if (discoverRes) setRecommended(discoverRes.results.slice(0, 12));
+      })
+      .catch(() => {});
+  }, [genres]);
 
   const loadDiscover = useCallback((targetPage, genre, sortValue, append) => {
     setGridState(append ? 'appending' : 'loading');
@@ -67,6 +89,24 @@ export function Home() {
           </div>
         )}
       </section>
+
+      {recommended.length > 0 && (
+        <section>
+          <h2>Because You Liked {recommendedGenreName}</h2>
+          <div className="scroll-row">
+            <MovieGrid movies={recommended} />
+          </div>
+        </section>
+      )}
+
+      {recentlyViewed.length > 0 && (
+        <section>
+          <h2>Recently Viewed</h2>
+          <div className="scroll-row">
+            <MovieGrid movies={recentlyViewed} />
+          </div>
+        </section>
+      )}
 
       <section>
         <h2>Discover</h2>

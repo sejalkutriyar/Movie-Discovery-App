@@ -4,13 +4,15 @@ import { api } from '../api/client';
 import { MovieGrid } from '../components/MovieGrid';
 import { ErrorState } from '../components/ErrorState';
 import { useWishlist } from '../context/WishlistContext';
+import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 
 export function MovieDetails() {
   const { id } = useParams();
   const [movie, setMovie] = useState(null);
   const [similar, setSimilar] = useState([]);
-  const [state, setState] = useState('loading'); // loading | ready | error
+  const [state, setState] = useState('loading');
   const { isWishlisted, toggle } = useWishlist();
+  const { recordView } = useRecentlyViewed();
 
   useEffect(() => {
     setState('loading');
@@ -18,10 +20,12 @@ export function MovieDetails() {
       .then((res) => {
         setMovie(res.movie);
         setState('ready');
+        recordView(res.movie);
       })
       .catch(() => setState('error'));
 
     api.similar(id).then((res) => setSimilar(res.results || [])).catch(() => setSimilar([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   if (state === 'loading') return <div className="page"><p>Loading...</p></div>;

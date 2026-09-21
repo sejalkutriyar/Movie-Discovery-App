@@ -17,8 +17,6 @@ export function WishlistProvider({ children }) {
 
   const isWishlisted = useCallback((id) => items.some((m) => m.movie_id === id), [items]);
 
-  // Optimistic: update UI instantly, roll back only if the server call fails.
-  // This is what makes the wishlist toggle feel instant instead of laggy.
   const add = useCallback(async (movie) => {
     const optimisticItem = {
       movie_id: movie.id,
@@ -30,9 +28,16 @@ export function WishlistProvider({ children }) {
     };
     setItems((prev) => [optimisticItem, ...prev.filter((m) => m.movie_id !== movie.id)]);
     try {
-      await api.wishlist.add({ id: movie.id, title: movie.title, posterUrl: movie.posterUrl, year: movie.year, rating: movie.rating });
+      await api.wishlist.add({
+        id: movie.id,
+        title: movie.title,
+        posterUrl: movie.posterUrl,
+        year: movie.year,
+        rating: movie.rating,
+        genreId: movie.genres?.[0]?.id ?? null,
+      });
     } catch {
-      setItems((prev) => prev.filter((m) => m.movie_id !== movie.id)); // rollback
+      setItems((prev) => prev.filter((m) => m.movie_id !== movie.id));
     }
   }, []);
 
@@ -42,7 +47,7 @@ export function WishlistProvider({ children }) {
     try {
       await api.wishlist.remove(id);
     } catch {
-      setItems(previous); // rollback
+      setItems(previous);
     }
   }, [items]);
 

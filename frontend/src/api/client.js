@@ -7,8 +7,6 @@ class ApiError extends Error {
   }
 }
 
-// Every request goes through here so error shape is consistent across the
-// whole app (components only ever deal with ApiError, never raw fetch quirks).
 async function request(path, { signal, ...options } = {}) {
   let res;
   try {
@@ -18,7 +16,7 @@ async function request(path, { signal, ...options } = {}) {
       ...options,
     });
   } catch (err) {
-    if (err.name === 'AbortError') throw err; // let callers handle cancellation silently
+    if (err.name === 'AbortError') throw err;
     throw new ApiError('Could not reach the server. Check your connection.', 0);
   }
 
@@ -46,6 +44,7 @@ export const api = {
     list: (opts) => request('/api/wishlist', opts),
     add: (movie, opts) => request('/api/wishlist', { method: 'POST', body: JSON.stringify(movie), ...opts }),
     remove: (id, opts) => request(`/api/wishlist/${id}`, { method: 'DELETE', ...opts }),
+    topGenre: (opts) => request('/api/wishlist/top-genre', opts),
   },
 };
 
